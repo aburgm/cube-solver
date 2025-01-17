@@ -1,2 +1,3 @@
 [package]
 name="cube_solver"
+edition="2021"

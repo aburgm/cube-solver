@@ -1,89 +1,8 @@
-mod vector;
-
-use vector::Vector;
+use cube_solver::{Vector, Rotation, find_cube_rotations};
 
 #[derive(Clone, Default)]
 struct Cube {
     occupancy: [[[bool; 5]; 5]; 5],
-}
-
-#[derive(Clone, PartialEq, Default)]
-struct Matrix {
-    el: [[i32; 3]; 3]
-}
-
-impl Matrix {
-    fn identity() -> Matrix {
-        Matrix{
-	    el: [
-	        [1,0,0],
-		[0,1,0],
-		[0,0,1],
-	    ],
-	}
-    }
-
-    fn rot_x() -> Matrix {
-        Matrix{
-	    el: [
-	        [1,0,0],
-		[0,0,1],
-		[0,-1,0],
-	    ],
-	}
-    }
-
-    fn rot_y() -> Matrix {
-        Matrix{
-	    el: [
-	        [0,0,-1],
-		[0,1,0],
-		[1,0,0],
-	    ],
-	}
-    }
-
-    fn rot_z() -> Matrix {
-        Matrix{
-	    el: [
-	        [0,1,0],
-		[-1,0,0],
-		[0,0,1],
-	    ],
-	}
-    }
-
-    fn mul(&self, other: &Matrix) -> Matrix {
-        let mut res = Matrix{el: Default::default()};
-        for i in 0..3 {
-	    for j in 0..3 {
-	        for k in 0..3 {
-		    *res.at_mut(i, j) += self.at(i, k) * other.at(k, j);
-		}
-	    }
-	}
-	res
-    }
-
-    fn rotate(&self, vec: &Vector) -> Vector {
-        let mut res = Vector::default();
-
-        for i in 0..3 {
-	    for j in 0..3 {
-	        *res.at_mut(i) += self.at(i,j) * vec.at(j);
-	    }
-	}
-
-	res
-    }
-
-    fn at(&self, i: usize, j: usize) -> i32 {
-        self.el[i][j]
-    }
-
-    fn at_mut(&mut self, i: usize, j: usize) -> &mut i32 {
-        &mut self.el[i][j]
-    }
 }
 
 impl Cube {
@@ -111,37 +30,9 @@ impl Cube {
     }
 }
 
-/// Finds the 24 members of the 3-cube 90-degree rotation
-/// group in matrix form.
-fn find_cube_rotations() -> Vec<Matrix> {
-    let mut result: Vec<Matrix> = vec![];
-
-    for i in 0..4 {
-        for j in 0..4 {
-            for k in 0..4 {
-	        let mut m = Matrix::identity();
-	        for _ in 0..i {
-		    m = m.mul(&Matrix::rot_x());
-		}
-	        for _ in 0..j {
-		    m = m.mul(&Matrix::rot_y());
-		}
-	        for _ in 0..k {
-		    m = m.mul(&Matrix::rot_z());
-		}
-		if result.iter().find(|cand| **cand == m).is_none() {
-		    result.push(m)
-		}
-	    }
-	}
-    }
-
-    result
-}
-
 type Layout = [Vector; 5];
 
-fn rotate_piece(piece: &Layout, orientation: &Matrix, center: &Vector) -> Layout {
+fn rotate_piece(piece: &Layout, orientation: &Rotation, center: &Vector) -> Layout {
     let mut result: Layout = Default::default();
     for i in 0..5 {
         result[i] = orientation.rotate(&piece[i].sub(center)).add(center);
@@ -159,7 +50,7 @@ fn translate_piece(piece: &Layout, translation: &Vector) -> Layout {
 
 /// Places a piece at the given position in the given orientation from the given anchor
 /// Returns none if piece cannot be placed
-fn place_piece(cube: &Cube, pos: &Vector, orientation: &Matrix, anchor: usize) -> Option<Cube> {
+fn place_piece(cube: &Cube, pos: &Vector, orientation: &Rotation, anchor: usize) -> Option<Cube> {
     const PIECE_TEMPLATE: Layout = [
         Vector::new(0,0,0),
         Vector::new(0,1,0),
@@ -191,7 +82,7 @@ struct State {
 }
 
 struct Solver {
-    orientations: Box<[Matrix]>,
+    orientations: Box<[Rotation]>,
 }
 
 impl Solver {
@@ -282,29 +173,4 @@ fn main() {
     }
 
     println!("No solution found");
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_matrix_indexing() {
-        let r90 = Matrix::rot_x();
-	assert_eq!(r90.at(0,0), 1);
-	assert_eq!(r90.at(0,1), 0);
-	assert_eq!(r90.at(0,2), 0);
-	assert_eq!(r90.at(1,0), 0);
-	assert_eq!(r90.at(1,1), 0);
-	assert_eq!(r90.at(1,2), 1);
-	assert_eq!(r90.at(2,0), 0);
-	assert_eq!(r90.at(2,1), -1);
-	assert_eq!(r90.at(2,2), 0);
-    }
-
-    #[test]
-    fn test_cube_rotations() {
-        let r = find_cube_rotations();
-	assert_eq!(r.len(), 24);
-    }
 }
