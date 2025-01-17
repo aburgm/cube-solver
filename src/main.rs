@@ -1,34 +1,4 @@
-use cube_solver::{Vector, Rotation, find_cube_rotations};
-
-#[derive(Clone, Default)]
-struct Cube {
-    occupancy: [[[bool; 5]; 5]; 5],
-}
-
-impl Cube {
-    fn occupy(&mut self, pos: &Vector) -> bool {
-        if self.occupied(pos) {
-	    return false;
-	}
-
-	self.occupancy[pos.at(0) as usize][pos.at(1) as usize][pos.at(2) as usize] = true;
-	true
-    }
-
-    fn occupied(&self, pos: &Vector) -> bool {
-        for i in 0..3 {
-            if pos.at(i) < 0 || pos.at(i) >= 5 {
-                return true;
-	    }
-	}
-
-	if self.occupancy[pos.at(0) as usize][pos.at(1) as usize][pos.at(2) as usize] {
-	    return true;
-	}
-
-	false
-    }
-}
+use cube_solver::{Vector, Rotation, find_cube_rotations, Cube};
 
 type Layout = [Vector; 5];
 
@@ -108,7 +78,7 @@ fn advance_cursor(cube: &Cube, vec: &Vector) -> Vector {
 	    }
 	}
 
-	if !cube.occupied(&result) {
+	if !cube.is_occupied(&result) {
 	    return result;
 	}
     }
