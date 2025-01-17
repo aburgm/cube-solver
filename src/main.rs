@@ -1,46 +1,4 @@
-use cube_solver::{find_cube_rotations, Cube, Rotation, Vector};
-
-type Layout = [Vector; 5];
-
-fn rotate_piece(piece: &Layout, orientation: &Rotation, center: &Vector) -> Layout {
-    let mut result: Layout = Default::default();
-    for i in 0..5 {
-        result[i] = orientation.rotate(&piece[i].sub(center)).add(center);
-    }
-    result
-}
-
-fn translate_piece(piece: &Layout, translation: &Vector) -> Layout {
-    let mut result: Layout = Default::default();
-    for i in 0..5 {
-        result[i] = piece[i].add(&translation)
-    }
-    result
-}
-
-/// Places a piece at the given position in the given orientation from the given anchor
-/// Returns none if piece cannot be placed
-fn place_piece(cube: &Cube, pos: &Vector, orientation: &Rotation, anchor: usize) -> Option<Cube> {
-    const PIECE_TEMPLATE: Layout = [
-        Vector::new(0, 0, 0),
-        Vector::new(0, 1, 0),
-        Vector::new(1, 0, 0),
-        Vector::new(2, 0, 0),
-        Vector::new(3, 0, 0),
-    ];
-
-    let rotated_piece = rotate_piece(&PIECE_TEMPLATE, orientation, &PIECE_TEMPLATE[anchor]);
-    let translated_piece = translate_piece(&rotated_piece, pos);
-
-    let mut result = cube.clone();
-    for i in 0..5 {
-        if !result.occupy(&translated_piece[i]) {
-            return None;
-        }
-    }
-
-    Some(result)
-}
+use cube_solver::{find_cube_rotations, Cube, Piece, Rotation, Vector};
 
 #[derive(Default)]
 struct State {
@@ -85,12 +43,14 @@ impl Solver {
     }
 
     fn try_place(&self, state: &State) -> Option<State> {
-        if let Some(cube) = place_piece(
-            &state.cube,
-            &state.cursor,
-            &self.orientations[state.orientation],
-            state.anchor,
-        ) {
+        // TODO(armin): here we want that with its anchor the piece is at the cursor position...
+        // but this doesn't do that, does it??
+        let piece = Piece::new()
+            .anchor(state.anchor)
+            .rotate(&self.orientations[state.orientation])
+            .translate(&state.cursor);
+
+        if let Some(cube) = piece.place(&state.cube) {
             Some(State {
                 cube: cube,
                 cursor: Self::advance_cursor(&state.cube, &state.cursor),

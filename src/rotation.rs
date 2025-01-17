@@ -5,6 +5,12 @@ pub struct Rotation {
     el: [[i32; 3]; 3],
 }
 
+impl Default for Rotation {
+    fn default() -> Rotation {
+        Rotation::identity()
+    }
+}
+
 impl Rotation {
     pub const fn identity() -> Rotation {
         Rotation {

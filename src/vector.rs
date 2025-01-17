@@ -35,6 +35,12 @@ impl Vector {
             ],
         };
     }
+
+    pub fn neg(&self) -> Vector {
+        return Vector {
+            el: [-self.el[0], -self.el[1], -self.el[2]],
+        };
+    }
 }
 
 #[cfg(test)]
@@ -77,5 +83,19 @@ mod test {
         assert_eq!(v.at(0), -3);
         assert_eq!(v.at(1), -5);
         assert_eq!(v.at(2), 10);
+    }
+
+    #[test]
+    fn test_vector_neg() {
+        let v1 = Vector::new(1, -2, 3).neg();
+        let v2 = Vector::new(4, 3, -7).neg();
+
+        assert_eq!(v1.at(0), -1);
+        assert_eq!(v1.at(1), 2);
+        assert_eq!(v1.at(2), -3);
+
+        assert_eq!(v2.at(0), -4);
+        assert_eq!(v2.at(1), -3);
+        assert_eq!(v2.at(2), 7);
     }
 }
