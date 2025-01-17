@@ -1,3 +1,7 @@
+mod vector;
+
+use vector::Vector;
+
 #[derive(Clone, Default)]
 struct Cube {
     occupancy: [[[bool; 5]; 5]; 5],
@@ -6,33 +10,6 @@ struct Cube {
 #[derive(Clone, PartialEq, Default)]
 struct Matrix {
     el: [[i32; 3]; 3]
-}
-
-#[derive(Clone, PartialEq, Default, Debug)]
-struct Vector {
-    el: [i32; 3]
-}
-
-impl Vector {
-    fn at(&self, i: usize) -> i32 {
-        self.el[i]
-    }
-
-    fn at_mut(&mut self, i: usize) -> &mut i32 {
-        &mut self.el[i]
-    }
-
-    fn add(&self, vec: &Vector) -> Vector {
-        return Vector{
-	    el: [self.el[0] + vec.el[0], self.el[1] + vec.el[1], self.el[2] + vec.el[2]],
-	}
-    }
-
-    fn sub(&self, vec: &Vector) -> Vector {
-        return Vector{
-	    el: [self.el[0] - vec.el[0], self.el[1] - vec.el[1], self.el[2] - vec.el[2]],
-	}
-    }
 }
 
 impl Matrix {
@@ -89,7 +66,7 @@ impl Matrix {
     }
 
     fn rotate(&self, vec: &Vector) -> Vector {
-        let mut res = Vector{el: Default::default()};
+        let mut res = Vector::default();
 
         for i in 0..3 {
 	    for j in 0..3 {
@@ -184,11 +161,11 @@ fn translate_piece(piece: &Layout, translation: &Vector) -> Layout {
 /// Returns none if piece cannot be placed
 fn place_piece(cube: &Cube, pos: &Vector, orientation: &Matrix, anchor: usize) -> Option<Cube> {
     const PIECE_TEMPLATE: Layout = [
-        Vector{el: [0,0,0]},
-        Vector{el: [0,1,0]},
-        Vector{el: [1,0,0]},
-        Vector{el: [2,0,0]},
-        Vector{el: [3,0,0]},
+        Vector::new(0,0,0),
+        Vector::new(0,1,0),
+        Vector::new(1,0,0),
+        Vector::new(2,0,0),
+        Vector::new(3,0,0),
     ];
 
     let rotated_piece = rotate_piece(&PIECE_TEMPLATE, orientation, &PIECE_TEMPLATE[anchor]);
@@ -298,7 +275,7 @@ fn main() {
 	    }
 	} else {
 	    cube_track.pop();
-	    if (cube_track.len() < 10) {
+	    if cube_track.len() < 10 {
 	        println!("Iterated all candidates, now having {}; first orientation={}", cube_track.len(), cube_track[0].orientation);
 	    }
 	}
