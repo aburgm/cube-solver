@@ -14,6 +14,10 @@ impl Piece {
         Vector::new(3, 0, 0),
     ];
 
+    pub fn num_cells() -> usize {
+        Piece::LAYOUT.len()
+    }
+
     /// Create a new piece
     pub fn new() -> Piece {
         Piece {

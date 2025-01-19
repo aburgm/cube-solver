@@ -1,5 +1,20 @@
 use crate::{find_cube_rotations, Cube, Piece, Rotation, Vector};
 
+/// Information about how a piece was placed
+#[derive(Default, Debug)]
+pub struct Placement {
+    /// Anchor cell index of the piece; this cell is placed
+    /// at the location specified by `location`
+    pub anchor: usize,
+
+    /// Orientation of the piece
+    pub orientation: Rotation,
+
+    /// Location inside the cube where the piece is placed
+    pub location: Vector,
+}
+
+/// Solver state
 #[derive(Default)]
 pub struct State {
     /// Current occupancy of the cube
@@ -9,11 +24,10 @@ pub struct State {
     cursor: Vector,
 
     /// Piece orientation to try next
-    orientation: usize,
+    orientation_index: usize,
 
     /// Piece anchor to try next
     anchor: usize,
-    // TODO(armin): add last piece info
 }
 
 pub struct Solver {
@@ -21,6 +35,8 @@ pub struct Solver {
 }
 
 impl Solver {
+    const SENTINEL: Vector = Vector::new(Cube::LENGTH, Cube::LENGTH, Cube::LENGTH);
+
     pub fn new() -> Solver {
         Solver {
             orientations: find_cube_rotations().into(),
@@ -28,7 +44,7 @@ impl Solver {
     }
 
     pub fn is_complete(state: &State) -> bool {
-        state.cursor == Vector::default()
+        state.cursor == Solver::SENTINEL
     }
 
     /// Returns how the next piece will try to be placed, in this order:
@@ -36,7 +52,7 @@ impl Solver {
     pub fn next_piece(&self, state: &State) -> (usize, Rotation, Vector) {
         (
             state.anchor,
-            self.orientations[state.orientation].clone(),
+            self.orientations[state.orientation_index].clone(),
             state.cursor.clone(),
         )
     }
@@ -52,7 +68,7 @@ impl Solver {
                     *result.at_mut(1) = 0;
                     *result.at_mut(0) += 1;
                     if result.at(0) == 5 {
-                        return Vector::default(); // not sure?
+                        return Solver::SENTINEL;
                     }
                 }
             }
@@ -68,7 +84,7 @@ impl Solver {
     fn try_place(&self, state: &State) -> Option<State> {
         let piece = Piece::new()
             .anchor(state.anchor)
-            .rotate(&self.orientations[state.orientation])
+            .rotate(&self.orientations[state.orientation_index])
             .translate(&state.cursor);
 
         if let Some(cube) = piece.place(&state.cube) {
@@ -76,7 +92,7 @@ impl Solver {
             Some(State {
                 cube: cube,
                 cursor: advanced_cursor,
-                orientation: 0,
+                orientation_index: 0,
                 anchor: 0,
             })
         } else {
@@ -86,18 +102,27 @@ impl Solver {
 
     /// Return a state with the next piece placed. Return None, if none
     /// if no more pieces can be placed.
-    pub fn next_candidate(&self, state: &mut State) -> Option<State> {
-        while state.anchor < 5 {
+    pub fn next_candidate(&self, state: &mut State) -> Option<(State, Placement)> {
+        while state.anchor < Piece::num_cells() {
+            let anchor = state.anchor;
+            let orientation_index = state.orientation_index;
             let new_state = self.try_place(state);
 
-            state.orientation += 1;
-            if state.orientation == 24 {
-                state.orientation = 0;
+            state.orientation_index += 1;
+            if state.orientation_index == self.orientations.len() {
+                state.orientation_index = 0;
                 state.anchor += 1;
             }
 
-            if new_state.is_some() {
-                return new_state;
+            if let Some(new_state) = new_state {
+                return Some((
+                    new_state,
+                    Placement {
+                        anchor: anchor,
+                        orientation: self.orientations[orientation_index].clone(),
+                        location: state.cursor.clone(),
+                    },
+                ));
             }
         }
 
@@ -154,7 +179,7 @@ mod test {
         );
         assert_eq!(
             Solver::advance_cursor(&cube, &Vector::new(4, 4, 4)),
-            Vector::default()
+            Solver::SENTINEL
         );
     }
 
@@ -198,11 +223,11 @@ mod test {
         );
         assert_eq!(
             Solver::advance_cursor(&cube, &Vector::new(4, 4, 3)),
-            Vector::default()
+            Solver::SENTINEL
         );
         assert_eq!(
             Solver::advance_cursor(&cube, &Vector::new(4, 4, 4)),
-            Vector::default()
+            Solver::SENTINEL
         );
     }
 
@@ -220,7 +245,7 @@ mod test {
         assert!(placed.cube.is_occupied(&Vector::new(3, 0, 0)));
         assert!(!placed.cube.is_occupied(&Vector::new(0, 1, 0)));
         assert_eq!(placed.cursor, Vector::new(0, 0, 1));
-        assert_eq!(placed.orientation, 0);
+        assert_eq!(placed.orientation_index, 0);
         assert_eq!(placed.anchor, 0);
 
         Ok(())
@@ -252,7 +277,7 @@ mod test {
         let state = State {
             cube: cube,
             cursor: Vector::new(0, 0, 1),
-            orientation: 0,
+            orientation_index: 0,
             anchor: 0,
         };
         let solver = Solver::new();
@@ -263,8 +288,8 @@ mod test {
         assert!(placed.cube.is_occupied(&Vector::new(1, 1, 1)));
         assert!(placed.cube.is_occupied(&Vector::new(2, 0, 1)));
         assert!(placed.cube.is_occupied(&Vector::new(3, 0, 1)));
-        assert_eq!(placed.cursor, Vector::default());
-        assert_eq!(placed.orientation, 0);
+        assert_eq!(placed.cursor, Solver::SENTINEL);
+        assert_eq!(placed.orientation_index, 0);
         assert_eq!(placed.anchor, 0);
 
         Ok(())
@@ -278,7 +303,7 @@ mod test {
         let state = State {
             cube: cube,
             cursor: Vector::default(),
-            orientation: 0,
+            orientation_index: 0,
             anchor: 0,
         };
         let solver = Solver::new();
@@ -301,7 +326,7 @@ mod test {
             let state = State {
                 cube: cube.clone(),
                 cursor: Vector::new(0, 0, 1),
-                orientation: 0,
+                orientation_index: 0,
                 anchor: 0,
             };
 
@@ -313,7 +338,7 @@ mod test {
             assert!(placed.cube.is_occupied(&Vector::new(2, 0, 1)));
             assert!(placed.cube.is_occupied(&Vector::new(3, 0, 1)));
             assert_eq!(placed.cursor, Vector::new(0, 0, 2));
-            assert_eq!(placed.orientation, 0);
+            assert_eq!(placed.orientation_index, 0);
             assert_eq!(placed.anchor, 0);
         }
 
@@ -321,7 +346,7 @@ mod test {
             let state = State {
                 cube: cube.clone(),
                 cursor: Vector::new(0, 1, 0),
-                orientation: 0,
+                orientation_index: 0,
                 anchor: 0,
             };
 
@@ -337,34 +362,41 @@ mod test {
         let solver = Solver::new();
 
         {
-            let next_state = solver
+            let (next_state, placement) = solver
                 .next_candidate(&mut state)
                 .ok_or("Failed to place candidate")?;
             assert!(!state.cube.is_occupied(&Vector::new(0, 0, 0)));
             assert_eq!(state.cursor, Vector::new(0, 0, 0));
-            assert_eq!(state.orientation, 1);
+            assert_eq!(state.orientation_index, 1);
             assert_eq!(state.anchor, 0);
+
+            assert_eq!(placement.anchor, 0);
+            assert_eq!(placement.orientation, solver.orientations[0]);
+            assert_eq!(placement.location, Vector::new(0, 0, 0));
 
             assert!(next_state.cube.is_occupied(&Vector::new(0, 0, 0)));
             assert_eq!(next_state.cursor, Vector::new(0, 0, 1));
-            assert_eq!(next_state.orientation, 0);
+            assert_eq!(next_state.orientation_index, 0);
             assert_eq!(next_state.anchor, 0);
         }
 
         for _ in 0..11 {
-            let next_state = solver
+            let (next_state, placement) = solver
                 .next_candidate(&mut state)
                 .ok_or("Failed to place candidate")?;
             assert!(!state.cube.is_occupied(&Vector::new(0, 0, 0)));
             assert_eq!(state.cursor, Vector::new(0, 0, 0));
             assert!(state.anchor == 0 || state.anchor == 4 || state.anchor == 5);
 
+            assert!(placement.anchor == 0 || placement.anchor == 4);
+            assert_eq!(placement.location, Vector::new(0, 0, 0));
+
             assert!(next_state.cube.is_occupied(&Vector::new(0, 0, 0)));
             assert!(
                 next_state.cursor == Vector::new(0, 0, 4)
                     || next_state.cursor == Vector::new(0, 0, 1)
             );
-            assert_eq!(next_state.orientation, 0);
+            assert_eq!(next_state.orientation_index, 0);
             assert_eq!(next_state.anchor, 0);
         }
 
@@ -398,18 +430,21 @@ mod test {
 
         // For each of the 5 cells of the remaining piece, make a state
         // with one of the free cells at the cursor
-        for free_cell in FREE_CELLS {
+        for (i, free_cell) in FREE_CELLS.iter().enumerate() {
             let mut state = State {
                 cube: cube.clone(),
-                cursor: free_cell,
-                orientation: 0,
+                cursor: free_cell.clone(),
+                orientation_index: 0,
                 anchor: 0,
             };
 
-            let next_state = solver
+            let (next_state, placement) = solver
                 .next_candidate(&mut state)
                 .ok_or("Failed to place final candidate")?;
             assert!(Solver::is_complete(&next_state));
+
+            assert_eq!(placement.anchor, i);
+            assert_eq!(&placement.location, free_cell);
 
             assert!(solver.next_candidate(&mut state).is_none());
         }

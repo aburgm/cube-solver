@@ -7,6 +7,8 @@ pub struct Cube {
 }
 
 impl Cube {
+    pub const LENGTH: i32 = 5;
+
     /// Occupy the given cell in the cube. returns false if the cell
     /// is outside of the cube or is already occupied
     pub fn occupy(&mut self, pos: &Vector) -> bool {
@@ -20,7 +22,7 @@ impl Cube {
 
     pub fn is_occupied(&self, pos: &Vector) -> bool {
         for i in 0..3 {
-            if pos.at(i) < 0 || pos.at(i) >= 5 {
+            if pos.at(i) < 0 || pos.at(i) >= Cube::LENGTH {
                 return true;
             }
         }
@@ -41,9 +43,9 @@ mod test {
     fn test_occupy() {
         let mut cube = Cube::default();
 
-        for i in 0..5 {
-            for j in 0..5 {
-                for k in 0..5 {
+        for i in 0..Cube::LENGTH {
+            for j in 0..Cube::LENGTH {
+                for k in 0..Cube::LENGTH {
                     assert!(!cube.is_occupied(&Vector::new(i, j, k)));
                 }
             }
