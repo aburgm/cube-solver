@@ -1,4 +1,6 @@
-use crate::{find_cube_rotations, Cube, Piece, Rotation, Vector};
+use crate::{find_cube_rotations, flood_fill, Cube, Piece, Rotation, Vector};
+
+use std::cmp::{max, min};
 
 /// Information about how a piece was placed
 #[derive(Default, Debug)]
@@ -32,6 +34,53 @@ pub struct State {
 
 pub struct Solver {
     orientations: Box<[Rotation]>,
+}
+
+impl State {
+    /// Determine whether this state is already unsolvable
+    /// if the function returns true, a solution cannot be found
+    /// from this state.
+    /// If the funciton returns false, a solution *might* still
+    /// be findable, but is not guaranteed. Further exploration
+    /// is required.
+    pub fn is_unsolvable(&self) -> bool {
+        let filled = flood_fill(&self.cube);
+
+        for fill in filled {
+            if fill.len() % 5 != 0 {
+                return true;
+            }
+
+            let mut lower = fill[0].clone();
+            let mut upper = fill[0].clone();
+            for v in &fill[1..] {
+                lower = Vector::new(
+                    min(lower.at(0), v.at(0)),
+                    min(lower.at(1), v.at(1)),
+                    min(lower.at(2), v.at(2)),
+                );
+                upper = Vector::new(
+                    max(upper.at(0), v.at(0)),
+                    max(upper.at(1), v.at(1)),
+                    max(upper.at(2), v.at(2)),
+                );
+            }
+
+            let extent = upper.sub(&lower);
+            let mut extent_components = [extent.at(0), extent.at(1), extent.at(2)];
+            extent_components.sort();
+
+            if extent_components[2] < 3 {
+                return true;
+            }
+
+            if extent_components[1] < 1 {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 impl Solver {
@@ -450,5 +499,100 @@ mod test {
         }
 
         Ok(())
+    }
+
+    fn make_box_hole_cube(min: &Vector, max: &Vector) -> Cube {
+        let mut cube = Cube::default();
+
+        for i in min.at(0)..=max.at(0) {
+            for j in min.at(0)..=max.at(0) {
+                for k in min.at(0)..=max.at(0) {
+                    if i == min.at(0) {
+                        cube.occupy(&Vector::new(i - 1, j, k));
+                    }
+                    if i == max.at(0) {
+                        cube.occupy(&Vector::new(i + 1, j, k));
+                    }
+                    if j == min.at(1) {
+                        cube.occupy(&Vector::new(i, j - 1, k));
+                    }
+                    if j == max.at(1) {
+                        cube.occupy(&Vector::new(i, j + 1, k));
+                    }
+                    if k == min.at(2) {
+                        cube.occupy(&Vector::new(i, j, k - 1));
+                    }
+                    if k == max.at(2) {
+                        cube.occupy(&Vector::new(i, j, k + 1));
+                    }
+                }
+            }
+        }
+
+        cube
+    }
+
+    #[test]
+    fn test_is_unsolvable_empty() {
+        // The pmpty cube should be solvable
+        let cube = Cube::default();
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(!state.is_unsolvable());
+    }
+
+    #[test]
+    fn test_is_unsolvable_with_one_cell_hole() {
+        let cube = make_box_hole_cube(&Vector::new(2, 0, 2), &Vector::new(2, 0, 2));
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(state.is_unsolvable());
+    }
+
+    #[test]
+    fn test_is_unsolvable_with_five_by_one_hole() {
+        let cube = make_box_hole_cube(&Vector::new(1, 0, 3), &Vector::new(1, 4, 3));
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(state.is_unsolvable());
+    }
+
+    #[test]
+    fn test_is_unsolvable_with_two_by_two_hole() {
+        let cube = make_box_hole_cube(&Vector::new(1, 1, 3), &Vector::new(3, 3, 3));
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(state.is_unsolvable());
+    }
+
+    #[test]
+    fn test_is_unsolvable_with_four_by_two_hole() {
+        // Four-by-two is not solvable because the number of cells in the hole
+        // is not a multiple of 5
+        let cube = make_box_hole_cube(&Vector::new(1, 1, 3), &Vector::new(4, 3, 3));
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(state.is_unsolvable());
+    }
+
+    #[test]
+    fn test_is_unsolvable_with_five_by_two_hole() {
+        // A five-by-two whole is not unsolvable yet
+        let cube = make_box_hole_cube(&Vector::new(0, 1, 3), &Vector::new(4, 3, 3));
+        let state = State {
+            cube: cube,
+            ..Default::default()
+        };
+        assert!(!state.is_unsolvable());
     }
 }

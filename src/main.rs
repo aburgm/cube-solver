@@ -8,12 +8,20 @@ fn main() {
         let len = cube_track.len();
         if let Some((new_state, placement)) = solver.next_candidate(&mut cube_track[len - 1].0) {
             cube_track[len - 1].1 = placement;
+
+            // If new candidate is final state, we can return
             if Solver::is_complete(&new_state) {
                 // we found a winner
                 println!("We found a solution!");
                 return;
             }
-            // If new candidate is final state, we can return
+
+            // If we already know that from this state the cube
+            // is not solvable, then don't bother going down that path
+            if new_state.is_unsolvable() {
+                continue;
+            }
+
             cube_track.push((new_state, Placement::default()));
             if cube_track.len() < 10 {
                 println!(
