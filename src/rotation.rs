@@ -1,6 +1,6 @@
 use crate::Vector;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Rotation {
     el: [[i32; 3]; 3],
 }
