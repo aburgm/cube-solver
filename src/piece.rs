@@ -18,6 +18,10 @@ impl Piece {
         Piece::LAYOUT.len()
     }
 
+    pub fn cells(&self) -> Vec<Vector> {
+        Piece::LAYOUT.iter().map(|x| self.transform(x)).collect()
+    }
+
     /// Create a new piece
     pub fn new() -> Piece {
         Piece {
@@ -70,6 +74,26 @@ impl Piece {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use crate::find_cube_rotations;
+
+    fn vector_ord(a: &Vector, b: &Vector) -> std::cmp::Ordering {
+        let x = a.at(0).cmp(&b.at(0));
+        match x {
+            std::cmp::Ordering::Less | std::cmp::Ordering::Greater => x,
+            std::cmp::Ordering::Equal => x,
+        }
+    }
+
+    fn is_fully_overlapping(a: &Piece, b: &Piece) -> bool {
+        let mut a_cells = a.cells();
+        let mut b_cells = b.cells();
+
+        a_cells.sort_by(vector_ord);
+        b_cells.sort_by(vector_ord);
+
+        return a_cells == b_cells;
+    }
 
     #[test]
     fn test_default_place() -> Result<(), String> {
@@ -242,5 +266,29 @@ mod test {
         assert!(!placed.is_occupied(&Vector::new(0, 2, 1)));
 
         Ok(())
+    }
+
+    #[test]
+    fn test_placement_symmetries() {
+        // Check that there are no symmetries among the 120
+        // ways to place pieces (5 anchors and 24 rotations)
+        let cube_rotations = find_cube_rotations();
+        let n_anchors = Piece::num_cells();
+
+        for a_rot in &cube_rotations {
+            for b_rot in &cube_rotations {
+                for a_anchor in 0..n_anchors {
+                    for b_anchor in 0..n_anchors {
+                        if a_rot == b_rot || a_anchor == b_anchor {
+                            continue;
+                        }
+
+                        let a = Piece::new().anchor(a_anchor).rotate(&a_rot);
+                        let b = Piece::new().anchor(b_anchor).rotate(&b_rot);
+                        assert!(!is_fully_overlapping(&a, &b));
+                    }
+                }
+            }
+        }
     }
 }
