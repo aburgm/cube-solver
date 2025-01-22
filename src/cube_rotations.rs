@@ -18,7 +18,7 @@ pub fn find_cube_rotations() -> Vec<Rotation> {
                 for _ in 0..k {
                     m = m.compose(&Rotation::rot_z());
                 }
-                if result.iter().find(|cand| **cand == m).is_none() {
+                if !result.iter().any(|cand| *cand == m) {
                     result.push(m)
                 }
             }

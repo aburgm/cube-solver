@@ -17,29 +17,29 @@ impl Vector {
     }
 
     pub fn add(&self, vec: &Vector) -> Vector {
-        return Vector {
+        Vector {
             el: [
                 self.el[0] + vec.el[0],
                 self.el[1] + vec.el[1],
                 self.el[2] + vec.el[2],
             ],
-        };
+        }
     }
 
     pub fn sub(&self, vec: &Vector) -> Vector {
-        return Vector {
+        Vector {
             el: [
                 self.el[0] - vec.el[0],
                 self.el[1] - vec.el[1],
                 self.el[2] - vec.el[2],
             ],
-        };
+        }
     }
 
     pub fn neg(&self) -> Vector {
-        return Vector {
+        Vector {
             el: [-self.el[0], -self.el[1], -self.el[2]],
-        };
+        }
     }
 }
 

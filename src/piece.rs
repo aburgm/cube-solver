@@ -1,5 +1,6 @@
 use crate::{Cube, Rotation, Vector};
 
+#[derive(Default)]
 pub struct Piece {
     rotation: Rotation,
     translation: Vector,
@@ -34,13 +35,13 @@ impl Piece {
     pub fn place(&self, cube: &Cube) -> Option<Cube> {
         let mut result = cube.clone();
         for v in &Piece::LAYOUT {
-            let p = self.transform(&v);
+            let p = self.transform(v);
             if !result.occupy(&p) {
                 return None;
             }
         }
 
-        return Some(result);
+        Some(result)
     }
 
     /// Translates the piece such that the cell with the given
@@ -62,12 +63,12 @@ impl Piece {
     pub fn translate(&self, translation: &Vector) -> Piece {
         Piece {
             rotation: self.rotation.clone(),
-            translation: self.translation.add(&translation),
+            translation: self.translation.add(translation),
         }
     }
 
     fn transform(&self, vec: &Vector) -> Vector {
-        self.rotation.rotate(&vec).add(&self.translation)
+        self.rotation.rotate(vec).add(&self.translation)
     }
 }
 

@@ -36,6 +36,12 @@ pub struct Solver {
     orientations: Box<[Rotation]>,
 }
 
+impl Default for Solver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl State {
     /// Determine whether this state is already unsolvable
     /// if the function returns true, a solution cannot be found
@@ -139,7 +145,7 @@ impl Solver {
         if let Some(cube) = piece.place(&state.cube) {
             let advanced_cursor = Self::advance_cursor(&cube, &state.cursor);
             Some(State {
-                cube: cube,
+                cube,
                 cursor: advanced_cursor,
                 orientation_index: 0,
                 anchor: 0,
@@ -167,7 +173,7 @@ impl Solver {
                 return Some((
                     new_state,
                     Placement {
-                        anchor: anchor,
+                        anchor,
                         orientation: self.orientations[orientation_index].clone(),
                         location: state.cursor.clone(),
                     },
